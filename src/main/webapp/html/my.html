@@ -1,11 +1,187 @@
 <html>
 <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
     <title>RPG</title>
     <script src=https://code.jquery.com/jquery-3.6.0.min.js></script>
     <link href="/css/my.css" rel="stylesheet">
 </head>
 <body>
 <h1>RPG admin panel</h1>
+<h2>Accounts List: </h2>
+
+<div id="paging-panel-top">
+    <label>
+        Account per page:
+        <select id="page-size-select">
+            <option value="3">3</option>
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+        </select>
+    </label>
+</div>
+
+<table id="main-table" class="myStyle">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Name</th>
+            <th>Title</th>
+            <th>Race</th>
+            <th>Profession</th>
+            <th>Level</th>
+            <th>Birthday</th>
+            <th>Banned</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    <tbody>
+
+    </tbody>
+</table>
+
+<script>
+    let currentPage = 0;
+    let pageSize = 3;
+    let totalPlayers = 0;
+
+    $(document).ready(function () {
+        loadPlayers();
+        loadPlayersCount();
+    });
+
+
+
+    $(document).on("click", ".delete-icon", function () {
+        let playerId = $(this).data("id");
+        deletePlayer(playerId);
+    });
+
+    function deletePlayer(playerId) {
+        if (!confirm("Вы уверены, что хотите удалить аккаунт?")) {
+            return;
+        }
+
+        $.ajax({
+            type: "DELETE",
+            url: "/rest/players/" + playerId,
+            success: function () {
+                loadPlayers();
+                loadPlayersCount();
+            },
+            error: function () {
+                alert("Ошибка при удалении аккаунта");
+            }
+        });
+    }
+
+    function loadPlayers() {
+        $.ajax({
+            type: "GET",
+            url: "/rest/players",
+            data: {
+                pageNumber: currentPage,
+                pageSize: pageSize
+            },
+            success: function (players) {
+                fillTable(players);
+            },
+            error: function () {
+                alert("Ошибка загрузки игроков");
+            }
+        });
+    }
+
+    function fillTable(players) {
+        console.log(players);
+        let tbody = $("#main-table tbody");
+        tbody.empty();
+
+        players.forEach((player, index) => {
+            let row = `
+                <tr>
+                    <td>${player.id}</td>
+                    <td>${player.name}</td>
+                    <td>${player.title}</td>
+                    <td>${player.race}</td>
+                    <td>${player.profession}</td>
+                    <td>${player.level}</td>
+                    <td>${new Date(player.birthday).toLocaleDateString()}</td>
+                    <td>${player.banned}</td>
+                    <td>
+                        <img src="/img/edit.png"
+                             class="action-icon edit-icon"
+                             data-id="${player.id}">
+                    </td>
+
+                    <td>
+                        <img src="/img/delete.png"
+                             class="action-icon delete-icon"
+                             data-id="${player.id}">
+                    </td>
+
+                </tr>
+            `;
+            tbody.append(row);
+        });
+    }
+    function loadPlayersCount() {
+        $.ajax({
+            type: "GET",
+            url: "/rest/players/count",
+            success: function (count) {
+                totalPlayers = count;
+                buildPaging();
+            },
+            error: function () {
+                alert("Ошибка загрузки количества игроков");
+            }
+        });
+    }
+
+    $("#page-size-select").on("change", function () {
+        pageSize = parseInt($(this).val());
+        currentPage = 0; // возвращаемся на первую страницу
+        loadPlayers();
+        loadPlayersCount();
+    });
+
+    function buildPaging() {
+        let pageButtons = $("#page-buttons-bottom");
+        pageButtons.empty();
+
+        let totalPages = Math.ceil(totalPlayers / pageSize);
+
+        for (let i = 0; i < totalPages; i++) {
+            let button = $("<button>")
+                .text(i + 1)
+                .addClass("page-button")
+                .on("click", function () {
+                    currentPage = i;
+                    loadPlayers();
+                    buildPaging();
+                });
+
+            if (i === currentPage) {
+                button.attr("disabled", true);
+                button.addClass("active");
+            }
+
+            pageButtons.append(button);
+        }
+    }
+
+
+</script>
+
+
+
+<div id="paging-panel-bottom">
+    <span>Page: </span>
+    <span id="page-buttons-bottom"></span>
+</div>
 
 </body>
 </html>
