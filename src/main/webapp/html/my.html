@@ -52,6 +52,37 @@
         loadPlayersCount();
     });
 
+    $(document).on("click", ".save-icon", function () {
+        let row = $(this).closest("tr");
+        let playerId = $(this).data("id");
+
+        savePlayer(playerId, row);
+    });
+
+    function savePlayer(playerId, row) {
+        let updatedPlayer = {
+            name: row.find("td").eq(1).find("input").val(),
+            title: row.find("td").eq(2).find("input").val(),
+            race: row.find("td").eq(3).find("select").val(),
+            profession: row.find("td").eq(4).find("select").val(),
+            banned: row.find("td").eq(7).find("select").val() === "true"
+        };
+
+        $.ajax({
+            type: "POST",
+            url: "/rest/players/" + playerId,
+            contentType: "application/json",
+            data: JSON.stringify(updatedPlayer),
+            success: function () {
+                loadPlayers();
+                loadPlayersCount();
+            },
+            error: function () {
+                alert("Ошибка при сохранении аккаунта");
+            }
+        });
+    }
+
 
 
     $(document).on("click", ".delete-icon", function () {
@@ -60,10 +91,6 @@
     });
 
     function deletePlayer(playerId) {
-        if (!confirm("Вы уверены, что хотите удалить аккаунт?")) {
-            return;
-        }
-
         $.ajax({
             type: "DELETE",
             url: "/rest/players/" + playerId,
@@ -75,6 +102,73 @@
                 alert("Ошибка при удалении аккаунта");
             }
         });
+    }
+
+    $(document).on("click", ".edit-icon", function () {
+        let row = $(this).closest("tr");
+        enterEditMode(row);
+    });
+
+    function enterEditMode(row) {
+        row.find(".delete-icon").hide();
+
+        let editIcon = row.find(".edit-icon");
+        editIcon.attr("src", "/img/save.png");
+        editIcon.removeClass("edit-icon").addClass("save-icon");
+
+        makeCellEditable(row, 1, 12); // Name
+        makeCellEditable(row, 2, 30); // Title
+        makeSelectEditable(row, 3, RACES);       // Race
+        makeSelectEditable(row, 4, PROFESSIONS); // Profession
+        makeBooleanSelect(row, 7); // Banned
+    }
+
+    function makeBooleanSelect(row, cellIndex) {
+        let cell = row.find("td").eq(cellIndex);
+        let currentValue = cell.text().trim() === "true";
+
+        let select = $(`
+        <select>
+            <option value="false">false</option>
+            <option value="true">true</option>
+        </select>
+    `);
+
+        select.val(String(currentValue));
+        cell.html(select);
+    }
+
+
+    function makeSelectEditable(row, cellIndex, values) {
+        let cell = row.find("td").eq(cellIndex);
+        let currentValue = cell.text().trim();
+
+
+        let select = $("<select>");
+
+        values.forEach(value => {
+            let option = $("<option>")
+                .val(value)
+                .text(value);
+
+            if (value === currentValue) {
+                option.attr("selected", true);
+            }
+
+            select.append(option);
+        });
+
+        cell.html(select);
+    }
+
+
+    function makeCellEditable(row, cellIndex, maxLength) {
+        let cell = row.find("td").eq(cellIndex);
+        let value = cell.text();
+
+        let maxAttr = maxLength ? `maxlength="${maxLength}"` : "";
+
+        cell.html(`<input type="text" value="${value}" ${maxAttr}>`);
     }
 
     function loadPlayers() {
@@ -173,6 +267,26 @@
         }
     }
 
+    const PROFESSIONS = [
+        "WARRIOR",
+        "ROGUE",
+        "SORCERER",
+        "CLERIC",
+        "PALADIN",
+        "NAZGUL",
+        "WARLOCK",
+        "DRUID"
+    ];
+
+    const RACES = [
+        "HUMAN",
+        "DWARF",
+        "ELF",
+        "GIANT",
+        "ORC",
+        "TROLL",
+        "HOBBIT"
+    ];
 
 </script>
 
@@ -180,7 +294,7 @@
 
 <div id="paging-panel-bottom">
     <span>Page: </span>
-    <span id="page-buttons-bottom"></span>
+    <div id="page-buttons-bottom"></div>
 </div>
 
 </body>
