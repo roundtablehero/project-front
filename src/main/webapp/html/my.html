@@ -21,6 +21,7 @@
         </select>
     </label>
 </div>
+<h1></h1>
 
 <table id="main-table" class="myStyle">
     <thead>
@@ -57,6 +58,12 @@
         let playerId = $(this).data("id");
 
         savePlayer(playerId, row);
+    });
+
+    $(document).ready(function () {
+        loadPlayers();
+        loadPlayersCount();
+        fillCreateSelects();
     });
 
     function savePlayer(playerId, row) {
@@ -288,13 +295,127 @@
         "HOBBIT"
     ];
 
+    function fillCreateSelects() {
+        let raceSelect = $("#create-race");
+        let professionSelect = $("#create-profession");
+
+        raceSelect.empty();
+        professionSelect.empty();
+
+        RACES.forEach(race => {
+            raceSelect.append(`<option value="${race}">${race}</option>`);
+        });
+
+        PROFESSIONS.forEach(profession => {
+            professionSelect.append(`<option value="${profession}">${profession}</option>`);
+        });
+    }
+
+    $(document).on("click", "#create-player-btn", function () {
+        createPlayer();
+    });
+
+    function clearCreateForm() {
+        $("#create-name").val("");
+        $("#create-title").val("");
+        $("#create-level").val(0);
+        $("#create-birthday").val("");
+        $("#create-banned").val("false");
+    }
+
+    function createPlayer() {
+        let name = $("#create-name").val().trim();
+        let title = $("#create-title").val().trim();
+        let race = $("#create-race").val();
+        let profession = $("#create-profession").val();
+        let level = parseInt($("#create-level").val());
+        let birthdayValue = $("#create-birthday").val();
+        let banned = $("#create-banned").val() === "true";
+
+        if (name.length === 0 || title.length === 0) {
+            alert("Name and Title are required");
+            return;
+        }
+
+        if (name.length < 1 || name.length > 12) {
+            alert("Name must be from 1 to 12 characters");
+            return;
+        }
+
+        if (!birthdayValue) {
+            alert("Birthday is required");
+            return;
+        }
+
+        let newPlayer = {
+            name: name,
+            title: title,
+            race: race,
+            profession: profession,
+            level: level,
+            birthday: new Date(birthdayValue).getTime(),
+            banned: banned
+        };
+
+        $.ajax({
+            type: "POST",
+            url: "/rest/players",
+            contentType: "application/json",
+            data: JSON.stringify(newPlayer),
+            success: function () {
+                clearCreateForm();
+                loadPlayers();
+                loadPlayersCount();
+            },
+            error: function () {
+                alert("Ошибка при создании аккаунта");
+            }
+        });
+    }
+
+
+
+
+
 </script>
 
 
 
 <div id="paging-panel-bottom">
+
+    <h1></h1>
     <span>Page: </span>
     <div id="page-buttons-bottom"></div>
+
+</div>
+<hr class="table-divider">
+
+<h1>Create new account:</h1>
+
+<div id="create-player-form">
+    <label>Name:</label>
+    <input type="text" id="create-name">
+
+    <label>Title:</label>
+    <input type="text" id="create-title">
+
+    <label>Race:</label>
+    <select id="create-race"></select>
+
+    <label>Profession:</label>
+    <select id="create-profession"></select>
+
+    <label>Level:</label>
+    <input type="number" id="create-level">
+
+    <label>Birthday:</label>
+    <input type="date" id="create-birthday">
+
+    <label>Banned:</label>
+    <select id="create-banned"></select>
+
+    <div></div>
+    <button id="create-player-btn">Create</button>
 </div>
 
 </body>
